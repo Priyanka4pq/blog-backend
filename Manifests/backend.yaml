@@ -1,0 +1,81 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: blog-backend-secrets
+  namespace: webapps
+type: Opaque
+data:
+  MONGODB_URL: bW9uZ29kYitzcnY6Ly9wcml5YW5rYWt1bWFyaTRwcTpIZWVMZ0RWSWJ5VW1heGliQGhvdGVsLXJv
+b2Z0b3AtY2x1c3Rlci44Z2JieS5tb25nb2RiLm5ldC9ob3RlbHMtcm9vZnRvcD9yZXRyeVdyaXRl
+cz10cnVlJnc9bWFqb3JpdHkmYXBwTmFtZT1ob3RlbC1yb29mdG9wLWNsdXN0ZXIK
+
+  JWT_SECRET_TOKEN: Yzg5YmNmODUwZDZjZTlkNTIwYzAwZDU2NDllOTFhMzk4ZDNiNTNiYjhhYTcwMWFjNzc5ZDBmYzM3
+YzkzNmFkYzYzYTI3YTE2YWRmZmJhMzBjZTlhNWE5NTNmZDdmZDVmYTQ0MzJiNDQxMzBiMDgxNWEx
+ODFhMTQ5MGQxMzQ4YzAK
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blog-backend-deployment
+  namespace: webapps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blog-backend
+  template:
+    metadata:
+      labels:
+        app: blog-backend
+    spec:
+      containers:
+        - name: blog-backend-container
+          image: priyanka4pq/blog1:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+
+          env:
+            - name: MONGODB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: blog-backend-secrets
+                  key: MONGODB_URL
+
+            - name: JWT_SECRET_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: blog-backend-secrets
+                  key: JWT_SECRET_TOKEN
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blog-backend-service
+  namespace: webapps
+spec:
+  selector:
+    app: blog-backend
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: LoadBalancer
