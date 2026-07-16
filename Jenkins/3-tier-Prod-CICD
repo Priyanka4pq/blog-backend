@@ -1,0 +1,84 @@
+pipeline {
+    agent any
+
+    tools {
+        nodejs 'node21'
+    }
+    environment {
+        SCANNER_HOME= tool 'sonar-scanner'
+    }
+    stages {
+        stage('Git Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Priyanka4pq/blog-backend.git'
+            }
+        }
+        stage('Install Package Dependencies') {
+            steps {
+                sh "npm install"
+            }
+        }
+        stage('Unit Tests') {
+            steps {
+                sh "npm test"
+            }
+        }
+        stage('Trivy FS Scan') {
+            steps {
+                sh "trivy fs --format table -o fs-report.html ."
+            }
+        }
+        stage('SonarQube') {
+            steps {
+                withSonarQubeEnv('sonar-server') {
+                    sh "$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectKey=Blog -Dsonar.projectName=Blog"
+                }
+            }
+        }
+        stage('Docker Build & Tag') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-cred') {
+                        sh "docker build -t priyanka4pq/blog1:latest ."
+                    }
+                }
+            }
+        }
+        
+         stage('Trivy Image Scan') {
+            steps {
+                sh "trivy image --format table -o fs-report.html priyanka4pq/blog1:latest"
+            }
+        }
+        
+        stage('Docker Push Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-cred') {
+                        sh "docker push priyanka4pq/blog1:latest"
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy To EKS') {
+            steps {
+                withKubeCredentials(kubectlCredentials: [[caCertificate: '', clusterName: 'my-eks22', contextName: '', credentialsId: 'k8s-token', namespace: 'webapps', serverUrl: 'https://CCFB4871F5EEDDA4647F7A3B2BAB1C7B.gr7.ap-south-1.eks.amazonaws.com']]) {
+                sh "kubectl apply -f Manifests/backend.yaml"
+                sleep 60
+                }                 
+            }
+        }
+        
+        stage('Verify the Deployment') {
+            steps {
+                withKubeCredentials(kubectlCredentials: [[caCertificate: '', clusterName: 'my-eks22', contextName: '', credentialsId: 'k8s-token', namespace: 'webapps', serverUrl: 'https://CCFB4871F5EEDDA4647F7A3B2BAB1C7B.gr7.ap-south-1.eks.amazonaws.com']]) {
+                sh "kubectl get pods -n webapps"
+                sh "kubectl get svc -n webapps"
+                }                 
+            }
+        }
+
+       
+    }
+}
