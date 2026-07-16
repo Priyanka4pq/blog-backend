@@ -1,0 +1,78 @@
+pipeline {
+    agent any
+
+    tools {
+        nodejs 'node21'
+    }
+    environment {
+        SCANNER_HOME= tool 'sonar-scanner'
+    }
+    stages {
+        stage('Git Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Priyanka4pq/blog-backend.git'
+            }
+        }
+        stage('Install Package Dependencies') {
+            steps {
+                sh "npm install"
+            }
+        }
+        stage('Unit Tests') {
+            steps {
+                sh "npm test"
+            }
+        }
+        stage('Trivy FS Scan') {
+            steps {
+                sh "trivy fs --format table -o fs-report.html ."
+            }
+        }
+        stage('SonarQube') {
+            steps {
+                withSonarQubeEnv('sonar-server') {
+                    sh "$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectKey=Blog -Dsonar.projectName=Blog"
+                }
+            }
+        }
+        stage('Docker Build & Tag') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-cred') {
+                        sh "docker build -t priyanka4pq/blog:latest ."
+                    }
+                }
+            }
+        }
+        
+         stage('Trivy Image Scan') {
+            steps {
+                sh "trivy image --format table -o fs-report.html priyanka4pq/blog:latest"
+            }
+        }
+        
+        stage('Docker Push Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-cred') {
+                        sh "docker push priyanka4pq/blog:latest"
+                    }
+                }
+            }
+        }
+        
+        stage('Docker Deploy To Dev') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-cred') {
+                        sh '''docker rm -f blog-backend || true
+                        docker run -d \
+                        --name blog-backend \
+                        -p 5000:5000 \
+                        priyanka4pq/blog:latest'''
+                    }
+                }
+            }
+        }
+    }
+}
