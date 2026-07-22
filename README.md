@@ -90,16 +90,4 @@ Kubernetes manifests are available in the `/Manifests` folder.
 **Made with ❤️ by Priyanka**
 
 ```
-
----
-
-### How to Add This README:
-
-1. Go to your repo: https://github.com/Priyanka4pq/blog-backend
-2. Click on **"Add a README"** (if no README exists) or create a new file named `README.md`
-3. Paste the content above
-4. Commit the file
-
-Would you like me to now update your **full resume** with this project properly included? Just say **“Update resume”**. 
-
 You can also tell me more features your backend has (like login, posts, etc.) so I can make the README even better.
