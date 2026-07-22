@@ -88,6 +88,3 @@ Kubernetes manifests are available in the `/Manifests` folder.
 ---
 
 **Made with ❤️ by Priyanka**
-
-```
-You can also tell me more features your backend has (like login, posts, etc.) so I can make the README even better.
